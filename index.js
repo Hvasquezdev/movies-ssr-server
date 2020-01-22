@@ -1,20 +1,75 @@
 const express = require('express');
+const passport = require('passport');
+const boom = require('@hapi/boom');
+const cookieParser = require('cookie-parser');
+const axios = require('axios');
 
-const { config } = require('./config');
+const {
+  config
+} = require('./config');
 
 const app = express();
 
 // Body Parser
 app.use(express.json());
+app.use(cookieParser());
+
+// Passport Basic Strategy
+require('./utils/auth/strategies/basic');
 
 // Routes
-// app.post('/auth/sign-in', async function(req, res, next) {
+app.post('/auth/sign-in', async function (req, res, next) {
+  passport.authenticate('basic', function (err, data) {
+    try {
+      if (err || !data) {
+        next(boom.unauthorized('error', err));
+      }
 
-// });
+      const {
+        token,
+        user
+      } = data;
 
-// app.post('/auth/sign-up', async function(req, res, next) {
+      req.login(data, {
+        session: false
+      }, async function (error) {
+        if (error) {
+          next(error);
+        }
 
-// });
+        res.cookie('token', token, {
+          httpOnly: !config.dev,
+          secure: !config.dev
+        });
+
+        res.status(200).json(user);
+      });
+    } catch (error) {
+      next(error);
+    }
+  })(req, res, next);
+});
+
+app.post('/auth/sign-up', async function (req, res, next) {
+  const {
+    body: user
+  } = req;
+
+
+  try {
+    const {
+      data
+    } = await axios({
+      url: `${config.apiUrl}/api/auth/sign-up`,
+      method: 'post',
+      data: user
+    });
+
+    res.status(201).json(data);
+  } catch (error) {
+    next(error);
+  }
+});
 
 // app.get('/movies', async function(req, res, next) {
 
@@ -28,6 +83,6 @@ app.use(express.json());
 
 // });
 
-app.listen(config.port, function() {
+app.listen(config.port, function () {
   console.log(`Listening on http://localhost:${config.port}`);
 });
