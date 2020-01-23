@@ -3,6 +3,7 @@ const passport = require('passport');
 const boom = require('@hapi/boom');
 const cookieParser = require('cookie-parser');
 const axios = require('axios');
+const helmet = require('helmet');
 
 const {
   config
@@ -13,6 +14,7 @@ const app = express();
 // Body Parser
 app.use(express.json());
 app.use(cookieParser());
+app.use(helmet());
 
 // Passport Basic Strategy
 require('./utils/auth/strategies/basic');
